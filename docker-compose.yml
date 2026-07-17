@@ -1,0 +1,24 @@
+﻿services:
+  recorder:
+    build: .
+    image: wss-recorder-arm:latest
+    ports:
+      - "${WSS_PORT:-8080}:8080"
+    environment:
+      WSS_CONSOLE_PASSWORD: ${WSS_CONSOLE_PASSWORD:-changeme}
+      WSS_SESSION_SECRET: ${WSS_SESSION_SECRET:-change-me-to-a-long-random-string}
+      WSS_CONFIG: /data/config.yaml
+      WSS_DATA_DIR: /data
+      WSS_DEVICE_ID: ${WSS_DEVICE_ID:-14eaa12a154e}
+      WSS_AUTO_START: ${WSS_AUTO_START:-true}
+      TZ: ${TZ:-Asia/Shanghai}
+    volumes:
+      - ./data:/data
+      - /etc/localtime:/etc/localtime:ro
+    restart: always
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/api/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s

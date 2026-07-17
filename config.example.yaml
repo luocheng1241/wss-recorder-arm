@@ -1,0 +1,61 @@
+server:
+  host: "0.0.0.0"
+  port: 8080
+
+auth:
+  # Override with WSS_CONSOLE_PASSWORD
+  password: "changeme"
+  session_secret: "change-me-to-a-long-random-string"
+  session_max_age_sec: 604800
+
+device:
+  device_id: "14eaa12a154e"
+  relay_url: "wss://relay8-bj-ies.reservehemu.com:50374"
+  vnsp_version: "1.0.30"
+  app_id: "7ffe54b078ee92ed4f91c94b0eef16e6"
+  player_app_id: "c9ozz47akmvfkriiejiacubru0grlsuw"
+  player_api_url: "https://open.cmviot.cn/vnplayer-bff/player/api-biz"
+  base_url: "https://qly.cmviot.cn"
+
+recording:
+  output_dir: "data/recordings"
+  segment_duration: 300
+  keep_raw: false
+  convert_workers: 1
+  # Boot: start recording automatically when ticket is available
+  auto_start: true
+
+ticket:
+  ttl_sec: 86400
+  warn_sec: 3600
+  auto_refresh: true
+  token_cache_path: "data/token_cache.json"
+
+webdav:
+  enabled: false
+  url: ""
+  username: ""
+  password: ""
+  remote_base: "wss-recorder"
+  cron: "0 */6 * * *"
+  verify_ssl: true
+  batch_size: 50
+  delete_local_after_sync: true
+  # Live / Library always stream from WebDAV
+  play_from_webdav: true
+
+cleanup:
+  enabled: true
+  # Delete local file + DB row after successful WebDAV upload
+  delete_after_sync: true
+  # When total recordings size exceeds max_gb, delete oldest until ~target_ratio
+  max_gb: 20
+  target_ratio: 0.85
+  # Periodic cleanup interval (also runs after each converted segment for quota)
+  interval_sec: 300
+  batch_size: 100
+
+db:
+  path: "data/app.db"
+
+data_dir: "data"

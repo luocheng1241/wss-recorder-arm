@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>WSS Recorder Console</title>
+  <link rel="stylesheet" href="/static/css/app.css" />
+</head>
+<body>
+  <div id="login-view" class="login-wrap hidden">
+    <form id="login-form" class="card login-card">
+      <h1>WSS Recorder</h1>
+      <p class="muted">控制台登录</p>
+      <label>密码</label>
+      <input type="password" id="login-password" autocomplete="current-password" required />
+      <button type="submit">登录</button>
+      <p id="login-error" class="error"></p>
+    </form>
+  </div>
+
+  <div id="app-view" class="hidden">
+    <header class="topbar">
+      <div class="brand">WSS Recorder <span class="badge" id="rec-badge">—</span></div>
+      <nav class="tabs">
+        <button data-tab="dashboard" class="tab active">Dashboard</button>
+        <button data-tab="ticket" class="tab">Ticket</button>
+        <button data-tab="live" class="tab">Live</button>
+        <button data-tab="library" class="tab">Library</button>
+        <button data-tab="settings" class="tab">Settings</button>
+      </nav>
+      <button id="btn-logout" class="ghost">退出</button>
+    </header>
+
+    <div id="banner" class="banner hidden"></div>
+
+    <main>
+      <section id="tab-dashboard" class="panel active">
+        <div class="grid-2">
+          <div class="card">
+            <h2>录制状态</h2>
+            <div class="kv"><span>状态</span><strong id="d-rec-state">—</strong></div>
+            <div class="kv"><span>设备</span><strong id="d-device">—</strong></div>
+            <div class="kv"><span>帧数</span><strong id="d-frames">0</strong></div>
+            <div class="kv"><span>流量</span><strong id="d-bytes">0 MB</strong></div>
+            <div class="kv"><span>分片</span><strong id="d-seg">0</strong></div>
+            <div class="kv"><span>运行</span><strong id="d-uptime">0s</strong></div>
+            <div class="actions">
+              <button id="btn-start" class="primary">开始录制</button>
+              <button id="btn-stop">停止</button>
+            </div>
+          </div>
+          <div class="card">
+            <h2>Ticket</h2>
+            <div class="kv"><span>状态</span><strong id="d-ticket-state">—</strong></div>
+            <div class="kv"><span>预览</span><strong id="d-ticket-preview">—</strong></div>
+            <div class="kv"><span>剩余</span><strong id="d-ticket-remain">—</strong></div>
+            <div class="kv"><span>转换队列</span><strong id="d-convert">0</strong></div>
+            <div class="kv"><span>磁盘</span><strong id="d-disk">0 MB</strong></div>
+            <div class="kv"><span>ffmpeg</span><strong id="d-ffmpeg">—</strong></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="tab-ticket" class="panel">
+        <div class="card">
+          <h2>设置 Ticket</h2>
+          <p class="muted">从浏览器 F12 → Network → WS → 播放视频，复制 <code>?ticket=</code> 后的值。</p>
+          <label>Ticket</label>
+          <textarea id="ticket-input" rows="3" placeholder="粘贴 ticket，或整段 wss://...?ticket=xxxx"></textarea>
+          <div class="actions">
+            <button id="btn-save-ticket" class="primary">保存并应用</button>
+            <button id="btn-refresh-ticket">自动续票</button>
+            <button id="btn-clear-ticket" class="danger">清空</button>
+          </div>
+          <p id="ticket-msg" class="muted"></p>
+        </div>
+        <div class="card">
+          <h2>导入 token_cache（可选）</h2>
+          <p class="muted">粘贴旧项目 <code>token_cache.json</code> <strong>完整全文</strong>（必须是合法 JSON，以 <code>{</code> 开头）。只填 ticket 请用上面的输入框。</p>
+          <textarea id="token-cache-input" rows="6" placeholder='{"token":"...","yyToken":"...","cookies":{...},"ticket":"..."}'></textarea>
+          <div class="actions">
+            <button id="btn-import-cache" class="primary">导入</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="tab-live" class="panel">
+        <div class="card">
+          <h2>近实时预览（WebDAV）</h2>
+          <p class="muted">播放 WebDAV 上最新已同步的 MP4（本地上传后删除的文件从远端读取）。需先配置 WebDAV 并完成同步。</p>
+          <video id="live-video" controls playsinline class="player"></video>
+          <div class="kv"><span>当前分片</span><strong id="live-meta">—</strong></div>
+          <div class="actions">
+            <button id="btn-live-refresh">刷新</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="tab-library" class="panel">
+        <div class="card">
+          <h2>录像库（WebDAV）</h2>
+          <p class="muted">列表与播放均来自 WebDAV 远端，不再读本地磁盘。</p>
+          <div class="actions">
+            <select id="lib-day"><option value="">全部日期</option></select>
+            <button id="btn-lib-refresh">刷新</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>路径</th><th>大小</th><th>修改时间</th><th>操作</th>
+                </tr>
+              </thead>
+              <tbody id="lib-body"></tbody>
+            </table>
+          </div>
+          <video id="lib-video" controls playsinline class="player hidden"></video>
+        </div>
+      </section>
+
+      <section id="tab-settings" class="panel">
+        <div class="card">
+          <h2>录制设置</h2>
+          <label>分片时长（秒）</label>
+          <input type="number" id="set-segment" min="30" />
+          <label>设备 ID</label>
+          <input type="text" id="set-device" />
+          <label>Relay URL</label>
+          <input type="text" id="set-relay" />
+          <label class="inline"><input type="checkbox" id="set-keep-raw" /> 保留原始 CFLV</label>
+          <div class="actions">
+            <button id="btn-save-settings" class="primary">保存设置</button>
+          </div>
+        </div>
+        <div class="card">
+          <h2>自动清理</h2>
+          <p class="muted">已上传 WebDAV 的本地文件可自动删除；本地总量超过阈值时，边录边删最旧分片。</p>
+          <label class="inline"><input type="checkbox" id="cl-enabled" /> 启用磁盘配额清理</label>
+          <label class="inline"><input type="checkbox" id="cl-after-sync" /> 上传成功后删除本地</label>
+          <label>本地最大占用（GB）</label>
+          <input type="number" id="cl-max-gb" min="1" step="0.5" />
+          <div class="kv"><span>当前占用</span><strong id="cl-usage">—</strong></div>
+          <div class="actions">
+            <button id="btn-save-cleanup" class="primary">保存清理设置</button>
+            <button id="btn-cleanup-now">立即清理</button>
+          </div>
+          <p id="cl-status" class="muted"></p>
+        </div>
+        <div class="card">
+          <h2>WebDAV 同步</h2>
+          <label class="inline"><input type="checkbox" id="wd-enabled" /> 启用定时同步</label>
+          <label>URL</label>
+          <input type="text" id="wd-url" placeholder="https://dav.example.com/..." />
+          <label>用户名</label>
+          <input type="text" id="wd-user" />
+          <label>密码</label>
+          <input type="password" id="wd-pass" placeholder="留空则不修改" />
+          <label>远程目录</label>
+          <input type="text" id="wd-base" />
+          <label>Cron（分 时 日 月 周）</label>
+          <input type="text" id="wd-cron" placeholder="0 */6 * * *" />
+          <div class="actions">
+            <button id="btn-save-webdav" class="primary">保存 WebDAV</button>
+            <button id="btn-sync-now">立即同步</button>
+          </div>
+          <p id="wd-status" class="muted"></p>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="/static/js/app.js"></script>
+</body>
+</html>

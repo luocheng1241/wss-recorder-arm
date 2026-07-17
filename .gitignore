@@ -1,0 +1,16 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.env
+config.yaml
+data/
+CREDENTIALS.txt
+install.sh.bak
+docker-compose.yml.bak
+*.db
+*.log
+.DS_Store
+.idea/
+.vscode/

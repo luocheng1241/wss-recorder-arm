@@ -1,0 +1,13 @@
+# Docker
+Dockerfile
+docker-compose.yml
+.git
+.venv
+venv
+data
+__pycache__
+*.pyc
+*.md
+tests
+scripts
+.env
